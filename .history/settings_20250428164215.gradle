@@ -1,0 +1,6 @@
+dependencyResolutionManagement {
+    repositories {
+        google()  // Make sure Google's Maven repo is included
+        mavenCentral()
+    }
+} 

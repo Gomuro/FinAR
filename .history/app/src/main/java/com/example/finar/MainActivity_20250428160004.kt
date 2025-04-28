@@ -1,0 +1,220 @@
+package com.example.finar
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.google.ar.core.ArCoreApk
+import com.google.ar.core.ArCoreApk.Availability
+import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException
+import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException
+import com.example.finar.ui.theme.FinARTheme
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            FinARTheme {
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    ARCheckScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        onInstallRequested = { requestInstall() },
+                        onViewSupportedDevices = { viewSupportedDevices() }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun requestInstall() {
+        try {
+            ArCoreApk.getInstance().requestInstall(this, true)
+        } catch (e: UnavailableUserDeclinedInstallationException) {
+            // Handle installation declined
+        } catch (e: UnavailableDeviceNotCompatibleException) {
+            // Handle device not compatible
+        } catch (e: Exception) {
+            // Handle other errors
+        }
+    }
+
+    private fun viewSupportedDevices() {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://developers.google.com/ar/discover/supported-devices")
+        }
+        startActivity(intent)
+    }
+}
+
+@Composable
+fun ARCheckScreen(
+    modifier: Modifier = Modifier,
+    onInstallRequested: () -> Unit,
+    onViewSupportedDevices: () -> Unit
+) {
+    val context = LocalContext.current
+    var arAvailability by remember { mutableStateOf<Availability?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var detailedError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            arAvailability = ArCoreApk.getInstance().checkAvailability(context)
+            if (arAvailability == Availability.UNKNOWN_ERROR) {
+                try {
+                    ArCoreApk.getInstance().checkAvailability(context)
+                } catch (e: Exception) {
+                    detailedError = "Detailed error: ${e.message}\n" +
+                            "Cause: ${e.cause?.message}\n" +
+                            "Stack trace: ${e.stackTraceToString()}"
+                }
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error checking AR availability: ${e.message}"
+            detailedError = "Detailed error: ${e.message}\n" +
+                    "Cause: ${e.cause?.message}\n" +
+                    "Stack trace: ${e.stackTraceToString()}"
+        }
+    }
+
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        when (arAvailability) {
+            Availability.SUPPORTED_INSTALLED -> {
+                Text(
+                    text = "AR is supported and installed on your device!",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+                // Here you can add your AR scene or navigation to AR activity
+            }
+            Availability.SUPPORTED_APK_TOO_OLD,
+            Availability.SUPPORTED_NOT_INSTALLED -> {
+                Text(
+                    text = "AR is supported but needs to be installed/updated",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+                Button(
+                    onClick = onInstallRequested
+                ) {
+                    Text("Install/Update AR")
+                }
+            }
+            Availability.UNSUPPORTED_DEVICE_NOT_CAPABLE -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Your device does not support AR. Please check if:",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    Text(
+                        text = "1. Your device has a supported camera\n" +
+                                "2. Your device meets the minimum requirements\n" +
+                                "3. ARCore is supported on your device model",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                    Button(
+                        onClick = onViewSupportedDevices
+                    ) {
+                        Text("View Supported Devices")
+                    }
+                    Text(
+                        text = "Alternative Options:",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+                    Text(
+                        text = "1. Use an AR-compatible device\n" +
+                                "2. Try the ARCore Emulator in Android Studio\n" +
+                                "3. Use a different device from the supported list",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+            Availability.UNKNOWN_ERROR -> {
+                Text(
+                    text = "Error checking AR availability. Please check:",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+                Button(
+                    onClick = { 
+                        arAvailability = null
+                        errorMessage = null
+                        detailedError = null
+                    }
+                ) {
+                    Text("Retry Check")
+                }
+            }
+            Availability.UNKNOWN_CHECKING -> {
+                Text(
+                    text = "Checking AR availability...",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            Availability.UNKNOWN_TIMED_OUT -> {
+                Text(
+                    text = "AR availability check timed out. Please check your internet connection.",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+                Button(
+                    onClick = { 
+                        arAvailability = null
+                        errorMessage = null
+                        detailedError = null
+                    }
+                ) {
+                    Text("Retry Check")
+                }
+            }
+            null -> {
+                Text(
+                    text = "Checking AR availability...",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+
+        errorMessage?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
+        detailedError?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
