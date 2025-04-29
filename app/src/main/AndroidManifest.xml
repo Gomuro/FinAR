@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- AR Required permissions -->
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     
     <!-- AR Required features -->
@@ -19,7 +18,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FinAR"
-        tools:targetApi="31">
+        tools:targetApi="31"
+        tools:ignore="ManifestResource">
         
         <meta-data
             android:name="com.google.ar.core"

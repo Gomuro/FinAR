@@ -60,3 +60,12 @@ app/debug/
 
 # Compose
 .composition/
+
+# Sceneform
+.sceneform/
+
+# ARCore
+.arcore/
+
+# History
+.history
