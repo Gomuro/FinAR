@@ -77,4 +77,7 @@ dependencies {
     
     // Ensure you're using AndroidX material components
     implementation("androidx.compose.material3:material3:1.2.1")
+
+    // Add Material Components for legacy theme attributes
+    implementation("com.google.android.material:material:1.12.0")
 }
